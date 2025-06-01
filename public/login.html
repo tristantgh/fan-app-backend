@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log In</title>
+</head>
+<body>
+  <h1>Log In</h1>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Enter your email" required />
+    <input type="password" id="password" placeholder="Enter your password" required />
+    <button type="submit">Log In</button>
+  </form>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const loginRes = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const loginData = await loginRes.json();
+        if (!loginRes.ok) throw new Error(loginData.error || 'Login failed');
+
+        alert('Login successful! 🎉 (This will link to the app later)');
+        console.log('User ID:', loginData.userId);
+
+        // Placeholder: Redirect to app or dashboard
+        window.location.href = '/thankyou.html'; // Replace with real page or app deep link
+      } catch (err) {
+        alert(err.message);
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
