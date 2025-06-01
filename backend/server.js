@@ -6,7 +6,17 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Allow Netlify frontend and local testing
+const allowedOrigins = [
+  'https://683be6b0572570d272286297--sweet-sorbet-c5c4cb.netlify.app',
+  'http://localhost:3000', // Optional: if you test locally
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(bodyParser.json());
 
 // Test route to check server status
@@ -22,8 +32,7 @@ app.post('/signup', (req, res) => {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  // Here you'd normally add database logic (e.g., save to Postgres)
-  // For now, just return success for testing
+  // Normally you'd save the user to a database here
   res.status(201).json({ message: 'User signed up successfully!' });
 });
 
@@ -35,7 +44,7 @@ app.post('/login', (req, res) => {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  // Normally you'd check credentials in DB
+  // Normally you'd check credentials in DB here
   res.status(200).json({ message: 'User logged in successfully!' });
 });
 
