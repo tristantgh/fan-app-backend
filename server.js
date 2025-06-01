@@ -1,45 +1,45 @@
-// server.js (Backend)
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Pool } = require('pg');
+const bodyParser = require('body-parser');
+require('dotenv').config();
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
+app.use(bodyParser.json());
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+// Test route to check server status
+app.get('/', (req, res) => {
+  res.send('Server is live!');
 });
 
-app.post('/signup', async (req, res) => {
+// Signup route
+app.post('/signup', (req, res) => {
   const { email, password } = req.body;
-  try {
-    const customer = await stripe.customers.create({ email });
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      line_items: [{
-        price: process.env.STRIPE_PRICE_ID, // 👈 Make sure this is your Stripe Price ID (e.g., price_123...)
-        quantity: 1,
-      }],
-      customer: customer.id,
-      success_url: 'https://your-static-site-url/success',
-      cancel_url: 'https://your-static-site-url/cancel',
-    });
 
-    await pool.query(
-      'INSERT INTO users (email, password, stripe_customer_id, subscription_id) VALUES ($1, $2, $3, $4)',
-      [email, password, customer.id, session.subscription]
-    );
-
-    res.json({ checkoutUrl: session.url });
-  } catch (err) {
-    console.error('Signup error:', err);
-    res.status(500).json({ error: err.message });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
+
+  // Here you'd normally add database logic (e.g., save to Postgres)
+  // For now, just return success for testing
+  res.status(201).json({ message: 'User signed up successfully!' });
 });
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+// Login route
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+
+  // Normally you'd check credentials in DB
+  res.status(200).json({ message: 'User logged in successfully!' });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
