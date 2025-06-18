@@ -1,20 +1,17 @@
-// mobile-app/app/(auth)/login.tsx
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  TextInput, 
-  Button, 
-  StyleSheet, 
-  Text, 
-  Alert, 
-  ActivityIndicator 
+import React, { useState } from 'react';
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Button,
+  Text,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 
-const API_BASE = Constants.expoConfig?.extra?.API_BASE_URL 
-  || 'http://localhost:3000'; // fallback for dev
+const API_URL = 'https://fan-app-backend.onrender.com'; // Update this to your backend URL
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,34 +19,35 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, skip straight to tabs
-  useEffect(() => {
-    AsyncStorage.getItem('userId').then(id => {
-      if (id) router.replace('/(tabs)');
-    });
-  }, []);
-
   const handleLogin = async () => {
     if (!email || !password) {
-      return Alert.alert('Please fill both fields');
+      return Alert.alert('Error', 'Please fill in all fields');
     }
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password }),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || 'Login failed');
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
-      // save userId for session persistence:
-      await AsyncStorage.setItem('userId', String(json.userId));
-      // navigate into main app:
+
+      // Store the user ID
+      await AsyncStorage.setItem('userId', data.userId.toString());
+      console.log('Login successful, userId:', data.userId);
+      
+      // Navigate to tabs
       router.replace('/(tabs)');
-    } catch (err: any) {
-      Alert.alert('Error', err.message);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -57,34 +55,51 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerTitle: 'Log In' }} />
+      <Text style={styles.title}>Login</Text>
+      
       <TextInput
         style={styles.input}
         placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
+      
       <TextInput
         style={styles.input}
         placeholder="Password"
-        secureTextEntry
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
       />
-      {loading 
-        ? <ActivityIndicator size="large" />
-        : <Button title="Log In" onPress={handleLogin} />
-      }
+      
+      {loading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <Button title="Login" onPress={handleLogin} />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1, justifyContent:'center', padding:20 },
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   input: {
-    borderWidth:1, borderColor:'#ccc', borderRadius:5,
-    padding:12, marginBottom:16
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
   },
 });
