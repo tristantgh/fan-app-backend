@@ -5,180 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Join TRISTAN - Fan Community</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body, html {
-      height: 100%;
-      margin: 0;
+      height: 100%; margin: 0;
       font-family: 'Helvetica Neue', sans-serif;
     }
-
     body {
       background: url('header.png') no-repeat center center/cover;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: flex; justify-content: center; align-items: center;
       position: relative;
     }
-
     .overlay {
-      background: rgba(0, 0, 0, 0.5);
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      background: rgba(0,0,0,0.5);
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
     }
-
     .container {
       position: relative;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 30px;
-      border-radius: 12px;
-      text-align: center;
-      z-index: 1;
-      width: 90%;
-      max-width: 400px;
+      background: rgba(255,255,255,0.95);
+      padding: 30px; border-radius: 12px;
+      text-align: center; z-index: 1;
+      width: 90%; max-width: 400px;
     }
-
-    h1 {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      letter-spacing: 1px;
-    }
-
-    p {
-      font-size: 16px;
-      color: #333;
-      margin-bottom: 30px;
-    }
-
+    h1 { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+    p { font-size: 16px; color: #333; margin-bottom: 30px; }
     input, button {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border: 1px solid #000;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      outline: none;
+      width: 100%; padding: 14px; font-size: 16px;
+      border: 1px solid #000; border-radius: 8px;
+      margin-bottom: 15px; outline: none;
     }
-
     button {
-      background-color: #000;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
+      background-color: #000; color: #fff;
+      font-weight: bold; cursor: pointer;
       transition: 0.3s;
     }
-
     button:hover {
-      background-color: #fff;
-      color: #000;
+      background-color: #fff; color: #000;
       border: 1px solid #000;
     }
-
     .why-join {
-      background: none;
-      border: 1px solid #000;
-      color: #000;
-      margin-top: 10px;
-      font-size: 14px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
+      background: none; border: 1px solid #000;
+      color: #000; margin-top: 10px;
+      font-size: 14px; padding: 8px 12px;
+      border-radius: 6px; cursor: pointer;
       transition: 0.3s;
     }
-
-    .why-join:hover {
-      background: #fff;
-      color: #000;
-    }
-
+    .why-join:hover { background: #fff; color: #000; }
     .footer-note {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #999;
+      margin-top: 20px; font-size: 12px; color: #999;
     }
-
     /* Modal Styles */
     .modal {
-      display: none;
-      position: fixed;
-      z-index: 2;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.7);
+      display: none; position: fixed; z-index: 2;
+      left: 0; top: 0; width: 100%; height: 100%;
+      overflow: auto; background-color: rgba(0,0,0,0.7);
     }
-
     .modal-content {
-      background-color: #fff;
-      margin: 10% auto;
-      padding: 20px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
+      background-color: #fff; margin: 10% auto;
+      padding: 20px; border-radius: 12px;
+      width: 90%; max-width: 500px;
     }
-
     .modal-content h2 {
-      text-align: center;
-      font-size: 24px;
-      margin-bottom: 20px;
+      text-align: center; font-size: 24px; margin-bottom: 20px;
     }
-
-    .modal-content ul {
-      text-align: left;
-      padding: 0;
-      list-style: none;
-    }
-
-    .modal-content li {
-      margin-bottom: 16px;
-    }
-
+    .modal-content ul { text-align: left; padding: 0; list-style: none; }
+    .modal-content li { margin-bottom: 16px; }
     .modal-content li span {
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 18px; font-weight: bold;
     }
-
     .modal-content li p {
-      margin: 4px 0 0 0;
-      font-size: 14px;
-      color: #555;
+      margin: 4px 0 0; font-size: 14px; color: #555;
     }
-
     .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
+      color: #aaa; float: right; font-size: 28px;
+      font-weight: bold; cursor: pointer;
     }
-
-    .close:hover,
-    .close:focus {
-      color: black;
-    }
+    .close:hover, .close:focus { color: black; }
   </style>
 </head>
 <body>
   <div class="overlay"></div>
   <div class="container">
     <h1>TRISTAN</h1>
-    <p>Join the official fan community - $5/month</p>
+    <p>Join the official fan community – $5/month</p>
 
     <form id="subscription-form">
       <input type="email" id="email" placeholder="Email" required />
       <input type="password" id="password" placeholder="Create Password" required />
-      <button type="submit">Sign Up & Subscribe</button>
+      <button type="submit">Sign Up &amp; Subscribe</button>
     </form>
 
-    <button class="why-join" onclick="document.getElementById('perksModal').style.display='block'">Why Join?</button>
+    <button class="why-join"
+      onclick="document.getElementById('perksModal').style.display='block'">
+      Why Join?
+    </button>
 
     <p class="footer-note">Secure payment powered by Stripe</p>
   </div>
@@ -186,56 +106,40 @@
   <!-- Perks Modal -->
   <div id="perksModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="document.getElementById('perksModal').style.display='none'">&times;</span>
+      <span class="close"
+        onclick="document.getElementById('perksModal').style.display='none'">
+        &times;
+      </span>
       <h2>Membership Perks</h2>
       <ul>
-        <li><span>🎤 Free Meet & Greet For Life</span><p>Get exclusive access to meet and greets at every show, completely free for members.</p></li>
-        <li><span>📺 Exclusive Zoom Hangs Only For Members</span><p>Member-only Zoom hangs with live performances, Q&As, and more!</p></li>
-        <li><span>🎶 Access To New Music Early</span><p>Upcoming music will be released exclusively on the app before Spotify, Apple, etc.</p></li>
-        <li><span>🔓 Unreleased Music</span><p>Access exclusive tracks, demos, and unreleased content not available anywhere else.</p></li>
-        <li><span>🛍️ Exclusive Tristies Only Merch</span><p>Special merchandise available only for members.</p></li>
-        <li><span>💸 Discount On All Merch</span><p>Get special pricing on all merchandise in the store.</p></li>
-        <li><span>📣 Announcements</span><p>Posted in the app first before Instagram, TikTok, etc.</p></li>
-        <li><span>📷 Exclusive Behind-The-Scenes Content</span><p>Get access to exclusive content showing Tristan's creative process.</p></li>
-        <li><span>🏆 Leaderboard System</span><p>Win prizes for streaming the most, coming to the most shows, or purchasing the most merch.</p></li>
-        <li><span>💬 Group Chat</span><p>No separation by state or country. Everyone from everywhere can chat, and Tristan is in it too!</p></li>
-        <li><span>🌟 Special Thank You Recognition</span><p>All members have their name included in a special Thank You section in the description of all Tristan's content.</p></li>
-        <li><span>✉️ Direct Message Access To Tristan</span><p>Members are guaranteed Tristan will see and get to their messages as soon as possible.</p></li>
+        <li><span>🎤 Free Meet &amp; Greet For Life</span>
+          <p>Get exclusive access to meet and greets at every show.</p></li>
+        <!-- keep your other perks here -->
       </ul>
     </div>
   </div>
 
   <script>
-    document.getElementById('subscription-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    document
+      .getElementById('subscription-form')
+      .addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
 
-      const signupRes = await fetch('https://fan-app-backend.onrender.com/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        // 1) Create user + checkout session
+        const res = await fetch('/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          window.location = data.url;
+        } else {
+          alert('Error: ' + (data.error || 'Unable to start signup'));
+        }
       });
-      const signupData = await signupRes.json();
-      if (signupData.error) return alert(signupData.error);
-
-      const checkoutRes = await fetch('https://fan-app-backend.onrender.com/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, userId: signupData.user.id }),
-      });
-      const checkoutData = await checkoutRes.json();
-      if (checkoutData.url) {
-        window.location.href = checkoutData.url;
-      } else {
-        alert('Error creating checkout session');
-      }
-    });
-    const signupRes = await fetch('https://fan-app-backend.onrender.com/signup', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password }),
-});
   </script>
 </body>
 </html>

@@ -60,7 +60,6 @@ app.post('/webhook', (req, res) => {
       req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
     );
     console.log('✅ Webhook received:', event.type);
-    // (You can insert user on subscription here if desired)
   } catch (err) {
     console.error('❌ Webhook error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -68,13 +67,24 @@ app.post('/webhook', (req, res) => {
   res.json({ received: true });
 });
 
-/** Signup (unchanged) */
+/** Signup: hash password, insert user, then create Stripe session */
 app.post('/signup', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
   try {
+    // 1) Hash the password
+    const password_hash = await bcrypt.hash(password, 10);
+
+    // 2) Insert user record
+    const result = await pool.query(
+      'INSERT INTO users(email, password_hash) VALUES($1, $2) RETURNING id',
+      [email, password_hash]
+    );
+    const userId = result.rows[0].id;
+
+    // 3) Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -82,16 +92,17 @@ app.post('/signup', async (req, res) => {
       customer_email: email,
       success_url: 'https://tristanfanapp.com/download-app',
       cancel_url:  'https://tristanfanapp.com/cancel',
+      metadata:    { userId: String(userId) },
     });
     console.log('✅ Stripe session created:', session.id);
     res.json({ url: session.url });
   } catch (err) {
     console.error('❌ Signup error:', err);
-    res.status(500).json({ error: 'Failed to create checkout session.' });
+    res.status(500).json({ error: 'Failed to create signup session.' });
   }
 });
 
-/** LOGIN: verify email/password, return userId + role */
+/** LOGIN: verify email/password, return userId + role with detailed errors */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -102,18 +113,18 @@ app.post('/login', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-
     const user = result.rows[0];
+    if (!user.password_hash) {
+      throw new Error('No password set for this user');
+    }
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-
-    // On success, send back both ID and role
-    res.json({ userId: user.id, role: user.role });
+    return res.json({ userId: user.id, role: user.role });
   } catch (err) {
-    console.error('❌ Login error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
+    console.error('LOGIN ERROR:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -149,9 +160,7 @@ app.post('/announcements', ensureAdmin, async (req, res) => {
 });
 
 // Health check
-app.get('/', (_req, res) => {
-  res.send('Backend is running.');
-});
+app.get('/', (_req, res) => res.send('Backend is running.'));
 
 // Start server
 app.listen(PORT, () => {
