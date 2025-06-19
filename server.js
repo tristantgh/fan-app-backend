@@ -146,23 +146,6 @@ app.post('/announcements', ensureAdmin, async (req, res) => {
 
 /** Register Expo push token */
 app.post('/register-token', async (req, res) => {
-  const { userId, token } = req.body;
-  if (!userId || !token) {
-    return res.status(400).json({ error: 'Missing userId or token.' });
-  }
-  try {
-    await pool.query(
-      'UPDATE users SET push_token = $1 WHERE id = $2',
-      [token, userId]
-    );
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('❌ Register token error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-/** Register Expo push token */
-app.post('/register-token', async (req, res) => {
   console.log('👋 register-token hit', req.body);
   const { userId, token } = req.body;
   if (!userId || !token) {
