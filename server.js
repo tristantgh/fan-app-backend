@@ -10,6 +10,12 @@ const { Pool }   = require('pg');
 const app  = express();
 const PORT = process.env.PORT || 10000;
 
+// Logging middleware: log every request
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  next();
+});
+
 // PostgreSQL pool (Render DATABASE_URL)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -24,10 +30,14 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// Webhook needs raw body
+// Parse JSON after raw webhook route
 app.use('/webhook', express.raw({ type: 'application/json' }));
-// All other JSON
 app.use(bodyParser.json());
+
+/** Test route to verify server wiring */
+app.get('/hello', (req, res) => {
+  res.send('Hello from server!');
+});
 
 /** Middleware: only allow admins */
 async function ensureAdmin(req, res, next) {
@@ -51,23 +61,22 @@ async function ensureAdmin(req, res, next) {
   }
 }
 
-/** Stripe Webhook (unchanged) */
+/** Stripe Webhook */
 app.post('/webhook', (req, res) => {
   const sig = req.headers['stripe-signature'];
-  let event;
   try {
-    event = stripe.webhooks.constructEvent(
+    const event = stripe.webhooks.constructEvent(
       req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
     );
     console.log('✅ Webhook received:', event.type);
+    res.json({ received: true });
   } catch (err) {
     console.error('❌ Webhook error:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
-  res.json({ received: true });
 });
 
-/** Signup (unchanged) */
+/** Signup */
 app.post('/signup', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -90,7 +99,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-/** LOGIN: verify email/password */
+/** Login */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -113,7 +122,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-/** Public: list all announcements */
+/** List announcements */
 app.get('/announcements', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -126,7 +135,7 @@ app.get('/announcements', async (req, res) => {
   }
 });
 
-/** Admin only: create a new announcement */
+/** Create announcement (admin) */
 app.post('/announcements', ensureAdmin, async (req, res) => {
   const { title, body } = req.body;
   if (!title || !body) {
