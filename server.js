@@ -60,7 +60,6 @@ app.post('/webhook', (req, res) => {
       req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
     );
     console.log('✅ Webhook received:', event.type);
-    // (You can insert user on subscription here if desired)
   } catch (err) {
     console.error('❌ Webhook error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -91,7 +90,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-/** LOGIN: verify email/password, return userId + role */
+/** LOGIN: verify email/password */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -102,14 +101,11 @@ app.post('/login', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-
     const user = result.rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-
-    // On success, send back both ID and role
     res.json({ userId: user.id, role: user.role });
   } catch (err) {
     console.error('❌ Login error:', err);
@@ -145,6 +141,24 @@ app.post('/announcements', ensureAdmin, async (req, res) => {
   } catch (err) {
     console.error('❌ Create announcement error:', err);
     res.status(500).json({ error: 'Failed to create announcement.' });
+  }
+});
+
+/** Register Expo push token */
+app.post('/register-token', async (req, res) => {
+  const { userId, token } = req.body;
+  if (!userId || !token) {
+    return res.status(400).json({ error: 'Missing userId or token.' });
+  }
+  try {
+    await pool.query(
+      'UPDATE users SET push_token = $1 WHERE id = $2',
+      [token, userId]
+    );
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Register token error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
