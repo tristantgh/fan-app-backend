@@ -36,7 +36,6 @@ async function ensureAdmin(req, res, next) {
     const token = auth.replace('Bearer ', '').trim();
     if (!token) return res.status(401).send('Unauthorized');
 
-    // Look up user role
     const { rows } = await pool.query(
       'SELECT role FROM users WHERE id = $1',
       [token]
@@ -84,7 +83,7 @@ app.post('/signup', async (req, res) => {
     );
     const userId = result.rows[0].id;
 
-    // 3) Create Stripe checkout session
+    // 3) Create Stripe checkout session with metadata
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -102,7 +101,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-/** LOGIN: verify email/password, return userId + role with detailed errors */
+/** LOGIN: verify email/password, return userId + role */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -114,22 +113,18 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
     const user = result.rows[0];
-    if (!user.password_hash) {
-      throw new Error('No password set for this user');
-    }
+    if (!user.password_hash) throw new Error('No password set for this user');
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
-    return res.json({ userId: user.id, role: user.role });
+    if (!match) return res.status(401).json({ error: 'Invalid email or password.' });
+    res.json({ userId: user.id, role: user.role });
   } catch (err) {
     console.error('LOGIN ERROR:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/** Public: list all announcements */
-app.get('/announcements', async (req, res) => {
+/** Public: list announcements */
+app.get('/announcements', async (_req, res) => {
   try {
     const { rows } = await pool.query(
       'SELECT id, title, body, created_at FROM announcements ORDER BY created_at DESC'
@@ -141,12 +136,10 @@ app.get('/announcements', async (req, res) => {
   }
 });
 
-/** Admin only: create a new announcement */
+/** Admin only: create announcement */
 app.post('/announcements', ensureAdmin, async (req, res) => {
   const { title, body } = req.body;
-  if (!title || !body) {
-    return res.status(400).json({ error: 'Title and body are required.' });
-  }
+  if (!title || !body) return res.status(400).json({ error: 'Title and body are required.' });
   try {
     const result = await pool.query(
       'INSERT INTO announcements(title, body) VALUES($1, $2) RETURNING *',
@@ -163,6 +156,4 @@ app.post('/announcements', ensureAdmin, async (req, res) => {
 app.get('/', (_req, res) => res.send('Backend is running.'));
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server listening on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
