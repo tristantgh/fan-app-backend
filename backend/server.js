@@ -152,6 +152,25 @@ app.post('/announcements', ensureAdmin, async (req, res) => {
   }
 });
 
+/** Register Expo push token */
+app.post('/register-token', async (req, res) => {
+  console.log('🔔 hit /register-token', req.body);
+  const { userId, token } = req.body;
+  if (!userId || !token) {
+    return res.status(400).json({ error: 'Missing userId or token.' });
+  }
+  try {
+    await pool.query(
+      'UPDATE users SET push_token = $1 WHERE id = $2',
+      [token, userId]
+    );
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Register token error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Health check
 app.get('/', (_req, res) => res.send('Backend is running.'));
 
