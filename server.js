@@ -10,19 +10,19 @@ const { Pool }   = require('pg');
 const app  = express();
 const PORT = process.env.PORT || 10000;
 
-// Logging middleware: log every request
+// Log every incoming request with method & path
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
   next();
 });
 
-// PostgreSQL pool (Render DATABASE_URL)
+// PostgreSQL pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// CORS for your frontend(s)
+// CORS
 const allowedOrigins = [
   'https://tristanfanapp.com',
   'https://www.tristanfanapp.com',
@@ -30,23 +30,21 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// Parse JSON after raw webhook route
+// Webhook raw body, then JSON for everything else
 app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(bodyParser.json());
 
-/** Test route to verify server wiring */
-app.get('/hello', (req, res) => {
+/** Test route */
+app.get('/hello', (_req, res) => {
   res.send('Hello from server!');
 });
 
-/** Middleware: only allow admins */
+/** Admin-check middleware */
 async function ensureAdmin(req, res, next) {
   try {
     const auth = req.headers.authorization || '';
     const token = auth.replace('Bearer ', '').trim();
     if (!token) return res.status(401).send('Unauthorized');
-
-    // Look up user role
     const { rows } = await pool.query(
       'SELECT role FROM users WHERE id = $1',
       [token]
@@ -103,14 +101,14 @@ app.post('/signup', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query(
+    const { rows } = await pool.query(
       'SELECT id, password_hash, role FROM users WHERE email = $1',
       [email]
     );
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-    const user = result.rows[0];
+    const user = rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password.' });
@@ -122,7 +120,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-/** List announcements */
+/** Public: list announcements */
 app.get('/announcements', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -135,7 +133,7 @@ app.get('/announcements', async (req, res) => {
   }
 });
 
-/** Create announcement (admin) */
+/** Admin: create announcement */
 app.post('/announcements', ensureAdmin, async (req, res) => {
   const { title, body } = req.body;
   if (!title || !body) {
