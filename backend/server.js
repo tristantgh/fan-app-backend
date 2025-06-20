@@ -1,14 +1,16 @@
 // server.js
 require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
-const bodyParser = require('body-parser');
-const stripe     = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const bcrypt     = require('bcrypt');
-const { Pool }   = require('pg');
+const express      = require('express');
+const cors         = require('cors');
+const bodyParser   = require('body-parser');
+const stripe       = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const bcrypt       = require('bcrypt');
+const { Pool }     = require('pg');
+const { Expo }     = require('expo-server-sdk');
 
-const app  = express();
-const PORT = process.env.PORT || 10000;
+const app   = express();
+const expo  = new Expo();
+const PORT  = process.env.PORT || 10000;
 
 // PostgreSQL pool (Render DATABASE_URL)
 const pool = new Pool({
@@ -32,7 +34,7 @@ app.use(bodyParser.json());
 /** Middleware: only allow admins */
 async function ensureAdmin(req, res, next) {
   try {
-    const auth = req.headers.authorization || '';
+    const auth  = req.headers.authorization || '';
     const token = auth.replace('Bearer ', '').trim();
     if (!token) return res.status(401).send('Unauthorized');
 
@@ -73,17 +75,13 @@ app.post('/signup', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
   try {
-    // 1) Hash the password
     const password_hash = await bcrypt.hash(password, 10);
-
-    // 2) Insert user record
     const result = await pool.query(
       'INSERT INTO users(email, password_hash) VALUES($1, $2) RETURNING id',
       [email, password_hash]
     );
     const userId = result.rows[0].id;
 
-    // 3) Create Stripe checkout session with metadata
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -136,16 +134,50 @@ app.get('/announcements', async (_req, res) => {
   }
 });
 
-/** Admin only: create announcement */
+/** Admin only: create announcement & broadcast push */
 app.post('/announcements', ensureAdmin, async (req, res) => {
   const { title, body } = req.body;
-  if (!title || !body) return res.status(400).json({ error: 'Title and body are required.' });
+  if (!title || !body) {
+    return res.status(400).json({ error: 'Title and body are required.' });
+  }
+
   try {
+    // 1) insert announcement
     const result = await pool.query(
       'INSERT INTO announcements(title, body) VALUES($1, $2) RETURNING *',
       [title, body]
     );
-    res.status(201).json(result.rows[0]);
+    const announcement = result.rows[0];
+    res.status(201).json(announcement);
+
+    // 2) load all registered push tokens
+    const { rows } = await pool.query(
+      'SELECT push_token FROM users WHERE push_token IS NOT NULL'
+    );
+    const messages = [];
+    for (let { push_token } of rows) {
+      if (!Expo.isExpoPushToken(push_token)) {
+        console.warn(`Skipping invalid token: ${push_token}`);
+        continue;
+      }
+      messages.push({
+        to: push_token,
+        sound: 'default',
+        title,
+        body
+      });
+    }
+
+    // 3) send in chunks
+    for (let chunk of expo.chunkPushNotifications(messages)) {
+      try {
+        const receipts = await expo.sendPushNotificationsAsync(chunk);
+        console.log('Push receipts:', receipts);
+      } catch (err) {
+        console.error('Push error:', err);
+      }
+    }
+
   } catch (err) {
     console.error('❌ Create announcement error:', err);
     res.status(500).json({ error: 'Failed to create announcement.' });
