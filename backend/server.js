@@ -208,3 +208,345 @@ app.get('/', (_req, res) => res.send('Backend is running.'));
 
 // Start server
 app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
+
+// 1) List
+app.get('/upcoming-shows', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM upcoming_shows ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get upcoming shows error:', err);
+    res.status(500).json({ error: 'Failed to fetch upcoming shows.' });
+  }
+});
+
+// 2) Create
+app.post('/upcoming-shows', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO upcoming_shows(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create upcoming show error:', err);
+    res.status(500).json({ error: 'Failed to create upcoming show.' });
+  }
+});
+
+// 3) Update
+app.put('/upcoming-shows/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE upcoming_shows SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update upcoming show error:', err);
+    res.status(500).json({ error: 'Failed to update upcoming show.' });
+  }
+});
+
+// 4) Delete
+app.delete('/upcoming-shows/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM upcoming_shows WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete upcoming show error:', err);
+    res.status(500).json({ error: 'Failed to delete upcoming show.' });
+  }
+});
+
+// 1) List
+app.get('/behind-the-scenes', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM behind_the_scenes ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get behind the scenes error:', err);
+    res.status(500).json({ error: 'Failed to fetch behind the scenes.' });
+  }
+});
+
+// 2) Create
+app.post('/behind-the-scenes', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO behind_the_scenes(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create behind the scenes error:', err);
+    res.status(500).json({ error: 'Failed to create behind the scenes.' });
+  }
+});
+
+// 3) Update
+app.put('/behind-the-scenes/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE behind_the_scenes SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update behind the scenes error:', err);
+    res.status(500).json({ error: 'Failed to update behind the scenes.' });
+  }
+});
+
+// 4) Delete
+app.delete('/behind-the-scenes/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM behind_the_scenes WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete behind the scenes error:', err);
+    res.status(500).json({ error: 'Failed to delete behind the scenes.' });
+  }
+});
+
+// 1) List
+app.get('/merch', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM merch ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get merch error:', err);
+    res.status(500).json({ error: 'Failed to fetch merch.' });
+  }
+});
+
+// 2) Create
+app.post('/merch', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO merch(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create merch error:', err);
+    res.status(500).json({ error: 'Failed to create merch.' });
+  }
+});
+
+// 3) Update
+app.put('/merch/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE merch SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update merch error:', err);
+    res.status(500).json({ error: 'Failed to update merch.' });
+  }
+});
+
+// 4) Delete
+app.delete('/merch/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM merch WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete merch error:', err);
+    res.status(500).json({ error: 'Failed to delete merch.' });
+  }
+});
+
+// 1) List
+app.get('/perks', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM perks ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get perks error:', err);
+    res.status(500).json({ error: 'Failed to fetch perks.' });
+  }
+});
+
+// 2) Create
+app.post('/perks', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO perks(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create perks error:', err);
+    res.status(500).json({ error: 'Failed to create perks.' });
+  }
+});
+
+// 3) Update
+app.put('/perks/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE perks SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update perks error:', err);
+    res.status(500).json({ error: 'Failed to update perks.' });
+  }
+});
+
+// 4) Delete
+app.delete('/perks/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM perks WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete perks error:', err);
+    res.status(500).json({ error: 'Failed to delete perks.' });
+  }
+});
+
+// 1) List
+app.get('/unreleased-music', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM unreleased_music ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get unreleased music error:', err);
+    res.status(500).json({ error: 'Failed to fetch unreleased music.' });
+  }
+});
+
+// 2) Create
+app.post('/unreleased-music', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO unreleased_music(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create unreleased music error:', err);
+    res.status(500).json({ error: 'Failed to create unreleased music.' });
+  }
+});
+
+// 3) Update
+app.put('/unreleased-music/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE unreleased_music SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update unreleased music error:', err);
+    res.status(500).json({ error: 'Failed to update unreleased music.' });
+  }
+});
+
+// 4) Delete
+app.delete('/unreleased-music/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM unreleased_music WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete unreleased music error:', err);
+    res.status(500).json({ error: 'Failed to delete unreleased music.' });
+  }
+});
+
+// 1) List
+app.get('/about', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, title, body, created_at FROM about ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Get about error:', err);
+    res.status(500).json({ error: 'Failed to fetch about.' });
+  }
+});
+
+// 2) Create
+app.post('/about', ensureAdmin, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'Title and body required.' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO about(title, body) VALUES($1, $2) RETURNING *',
+      [title, body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Create about error:', err);
+    res.status(500).json({ error: 'Failed to create about.' });
+  }
+});
+
+// 3) Update
+app.put('/about/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, body } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE about SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+      [title, body, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Update about error:', err);
+    res.status(500).json({ error: 'Failed to update about.' });
+  }
+});
+
+// 4) Delete
+app.delete('/about/:id', ensureAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM about WHERE id = $1', [id]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ Delete about error:', err);
+    res.status(500).json({ error: 'Failed to delete about.' });
+  }
+});
