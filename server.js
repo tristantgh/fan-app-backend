@@ -6,17 +6,13 @@ const bodyParser = require('body-parser');
 const stripe     = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const bcrypt     = require('bcrypt');
 const { Pool }   = require('pg');
+const { Expo }   = require('expo-server-sdk');
 
 const app  = express();
+const expo = new Expo();
 const PORT = process.env.PORT || 10000;
 
-// Log every incoming request with method & path
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
-  next();
-});
-
-// PostgreSQL pool
+// PostgreSQL pool (Render DATABASE_URL)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -30,28 +26,17 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// Webhook raw body, then JSON for everything else
+// Raw for webhook, JSON elsewhere
 app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(bodyParser.json());
 
-/** Test route */
-app.get('/hello', (_req, res) => {
-  res.send('Hello from server!');
-});
-
-/** Admin-check middleware */
+/** Auth middleware */
 async function ensureAdmin(req, res, next) {
   try {
-    const auth = req.headers.authorization || '';
-    const token = auth.replace('Bearer ', '').trim();
+    const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
     if (!token) return res.status(401).send('Unauthorized');
-    const { rows } = await pool.query(
-      'SELECT role FROM users WHERE id = $1',
-      [token]
-    );
-    if (!rows[0] || rows[0].role !== 'admin') {
-      return res.status(403).send('Forbidden');
-    }
+    const { rows } = await pool.query('SELECT role FROM users WHERE id=$1', [token]);
+    if (!rows[0] || rows[0].role !== 'admin') return res.status(403).send('Forbidden');
     next();
   } catch (err) {
     console.error('Auth error', err);
@@ -59,7 +44,7 @@ async function ensureAdmin(req, res, next) {
   }
 }
 
-/** Stripe Webhook */
+/** Stripe webhook (unchanged) */
 app.post('/webhook', (req, res) => {
   const sig = req.headers['stripe-signature'];
   try {
@@ -74,108 +59,61 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-/** Signup */
-app.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
-  }
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      customer_email: email,
-      success_url: 'https://tristanfanapp.com/download-app',
-      cancel_url:  'https://tristanfanapp.com/cancel',
-    });
-    console.log('✅ Stripe session created:', session.id);
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error('❌ Signup error:', err);
-    res.status(500).json({ error: 'Failed to create checkout session.' });
-  }
-});
+/** Signup, login, announcements, etc... (keep all your existing routes here) **/
 
-/** Login */
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+/** COMMENTS: */
+// GET comments for one announcement
+app.get('/announcements/:id/comments', async (req, res) => {
+  const annId = req.params.id;
   try {
     const { rows } = await pool.query(
-      'SELECT id, password_hash, role FROM users WHERE email = $1',
-      [email]
-    );
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
-    res.json({ userId: user.id, role: user.role });
-  } catch (err) {
-    console.error('❌ Login error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-});
-
-/** Public: list announcements */
-app.get('/announcements', async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      'SELECT id, title, body, created_at FROM announcements ORDER BY created_at DESC'
+      `SELECT c.id, u.email AS user_email, c.text, c.created_at
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.announcement_id = $1
+       ORDER BY c.created_at ASC`,
+      [annId]
     );
     res.json(rows);
   } catch (err) {
-    console.error('❌ Get announcements error:', err);
-    res.status(500).json({ error: 'Failed to fetch announcements.' });
+    console.error('Get comments error', err);
+    res.status(500).json({ error: 'Failed to load comments.' });
   }
 });
 
-/** Admin: create announcement */
-app.post('/announcements', ensureAdmin, async (req, res) => {
-  const { title, body } = req.body;
-  if (!title || !body) {
-    return res.status(400).json({ error: 'Title and body are required.' });
-  }
+// POST a new comment
+app.post('/announcements/:id/comments', async (req, res) => {
+  const annId  = req.params.id;
+  const { userId, text } = req.body;
+  if (!userId || !text) return res.status(400).json({ error: 'Missing userId or text.' });
+
   try {
     const result = await pool.query(
-      'INSERT INTO announcements(title, body) VALUES($1, $2) RETURNING *',
-      [title, body]
+      `INSERT INTO comments (announcement_id, user_id, text)
+       VALUES ($1, $2, $3)
+       RETURNING id, text, created_at`,
+      [annId, userId, text]
     );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('❌ Create announcement error:', err);
-    res.status(500).json({ error: 'Failed to create announcement.' });
-  }
-});
-
-/** Register Expo push token */
-app.post('/register-token', async (req, res) => {
-  console.log('👋 register-token hit', req.body);
-  const { userId, token } = req.body;
-  if (!userId || !token) {
-    return res.status(400).json({ error: 'Missing userId or token.' });
-  }
-  try {
-    await pool.query(
-      'UPDATE users SET push_token = $1 WHERE id = $2',
-      [token, userId]
+    const comment = result.rows[0];
+    // grab the email
+    const { rows: urows } = await pool.query(
+      'SELECT email FROM users WHERE id = $1',
+      [userId]
     );
-    return res.sendStatus(200);
+    res.json({
+      id: comment.id,
+      user_email: urows[0]?.email || null,
+      text: comment.text,
+      created_at: comment.created_at
+    });
   } catch (err) {
-    console.error('❌ Register token error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Post comment error', err);
+    res.status(500).json({ error: 'Failed to post comment.' });
   }
 });
 
-// Health check
-app.get('/', (_req, res) => {
-  res.send('Backend is running.');
-});
+/** Health check */
+app.get('/', (_req, res) => res.send('Backend is running.'));
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server listening on port ${PORT}`);
-});
+/** Start */
+app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
